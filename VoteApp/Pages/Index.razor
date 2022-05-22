@@ -1,7 +1,159 @@
-﻿@page "/"
+﻿@using Data;
+@page "/"
 
-<h1>Hello, world!</h1>
+@if (VoteViewModel != null)
+{
+    <div class="form-group row" style="margin: 15px">
+        <h3>Voting App</h3>
+    </div>
+    <div class="form-group row" style="margin: 15px">
+        <div class="col-6">
+            <table style="text-align:center" class="table">
+                <thead>
+                    <tr>
+                        @if (VoteViewModel.Voters.Any(x => !x.HasSaved))
+                        {
+                            <th colspan="2">Voters<button @onclick="@(SaveNewVoter)" style="float:right; border:none; background-color:transparent"><i class="fa fa-save"></i></button></th>
+                        }
+                        else
+                        {
+                            <th colspan="2">Voters<button @onclick="@(AddNewVoter)" style="float:right; border:none; background-color:transparent"><i class="fa fa-plus-circle"></i></button></th>
+                        }
+                    </tr>
+                    <tr>
+                        <th class="col-4">Name</th>
+                        <th class="col-2">Has voted</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in VoteViewModel.Voters)
+                    {
+                        <tr>
+                            <td><input type="text" placeholder="WriteHere" @bind="@item.VoterName" disabled="@item.HasSaved" class="form-control" style="background-color: transparent; text-align:center; border:none"></td>
+                            <td>@if(!item.VoterHasVoted)
+                                {
+                                    <i class="fa fa-times"></i>
+                                }
+                                else
+                                {
+                                    <i class="fa fa-check"></i>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="col-6">
+            <table style="text-align:center" class="table">
+                <thead>
+                    <tr>
+                        @if (VoteViewModel.Candidates.Any(x => !x.HasSaved))
+                        {
+                            <th colspan="2">Candidates<button @onclick="@(SaveNewCandidate)" style="float:right; border:none; background-color:transparent"><i class="fa fa-save"></i></button></th>
+                        }
+                        else
+                        {
+                            <th colspan="2">Candidates<button @onclick="@(AddNewCandidate)" style="float:right; border:none; background-color:transparent"><i class="fa fa-plus-circle"></i></button></th>
+                        }
+                    </tr>
+                    <tr>
+                        <th class="col-4">Name</th>
+                        <th class="col-2">Votes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in VoteViewModel.Candidates)
+                    {
+                        <tr>
+                            <td><input type="text" placeholder="WriteHere" @bind="@item.CandidateName" disabled="@item.HasSaved" class="form-control" style="background-color: transparent; text-align:center; border:none"></td>
+                            <td>@item.CandidateVoteCount.ToString()</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <hr />
+    <div class="form-group row" style="margin: 15px">
+        <h3>Vote!</h3>
+    </div>
+    <div class="form-group row" style="margin: 15px">
+            <select @bind="voterId" class="form-control col-sm-3" style="margin-right: 15px">
+                <option value=""></option>
+                @foreach (var voter in VoteViewModel.Voters.Where(x=>x.HasSaved && !x.VoterHasVoted))
+                {
+                    <option value="@voter.VoterId">@voter.VoterName</option>
+                }
+            </select>
+            <select @bind="candidateId" class="form-control col-sm-3" style="margin-right: 15px">
+                <option value=""></option>
+                @foreach (var candidate in VoteViewModel.Candidates.Where(x => x.HasSaved))
+                {
+                    <option value="@candidate.CandidateId.ToString()">@candidate.CandidateName</option>
+                }
+            </select>
+        <div class="col-sm-2">
+            <button class="btn btn-primary mb-3" @onclick="@(SubmitVote)">Submit!</button>
+        </div>
+        @if(showError)
+        {
+            <div class="validation-message">Należy wybrać kandydata i głosującego.</div>
+        }
+    </div>
+}
 
-Welcome to your new app.
+@functions{
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+    VoteViewModel VoteViewModel;
+
+    private string voterId { get; set; } = "";
+    private string candidateId { get; set; } = "";
+    private bool showError { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        VoteViewModel = new VoteViewModel();
+        VoteViewModel.Candidates.Add(new CandidatesModel() { CandidateId = Guid.NewGuid(), CandidateName = "Nasz kandydat", CandidateVoteCount = 0, HasSaved = true });
+        VoteViewModel.Candidates.Add(new CandidatesModel() { CandidateId = Guid.NewGuid(), CandidateName = "Miś Puchatek", CandidateVoteCount = 0, HasSaved = true });
+        VoteViewModel.Voters.Add(new VotersModel() { VoterId = Guid.NewGuid(), VoterName = "Pierwszy głos", VoterHasVoted = false, HasSaved = true });
+        VoteViewModel.Voters.Add(new VotersModel() { VoterId = Guid.NewGuid(), VoterName = "Kamil Kos", VoterHasVoted = false, HasSaved = true });
+        VoteViewModel.Voters.Add(new VotersModel() { VoterId = Guid.NewGuid(), VoterName = "Marcin Baszcz", VoterHasVoted = false, HasSaved = true });
+
+        base.OnInitialized();
+    }
+
+    void AddNewVoter()
+    {
+        VoteViewModel.Voters.Add(new VotersModel());
+    }
+    void SaveNewVoter()
+    {
+        VoteViewModel.Voters.Where(x => !x.HasSaved && !string.IsNullOrEmpty(x.VoterName)).ToList().ForEach(x => x.HasSaved = true);
+    }
+
+    void AddNewCandidate()
+    {
+        VoteViewModel.Candidates.Add(new CandidatesModel());
+    }
+    void SaveNewCandidate()
+    {
+        VoteViewModel.Candidates.Where(x => !x.HasSaved && !string.IsNullOrEmpty(x.CandidateName)).ToList().ForEach(x => x.HasSaved = true);
+    }
+
+    void SubmitVote()
+    {
+        if(string.IsNullOrEmpty(voterId) || string.IsNullOrEmpty(candidateId))
+        {
+            showError = true;
+            return;
+        }
+
+        VoteViewModel.Voters.FirstOrDefault(x => x.VoterId.ToString() == voterId).VoterHasVoted = true;
+        VoteViewModel.Candidates.FirstOrDefault(x => x.CandidateId.ToString() == candidateId).CandidateVoteCount++;
+        voterId = "";
+        candidateId = "";
+
+        showError = false;
+    }
+}
